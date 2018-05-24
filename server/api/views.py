@@ -6,8 +6,10 @@ from django.contrib.auth.hashers import check_password
 @api_view(['POST'])
 def hello_world(request):
     if request.method == 'POST':
+        print(request)
         print("*" + request.POST['username'] + "*")
         print("$" + request.POST['password'] + "$")
+        print("$" + request.POST['key'] + "$")
         requested_user = User.objects.get(username=request.POST['username'])
         print(requested_user)
         if requested_user:

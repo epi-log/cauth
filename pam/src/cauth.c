@@ -146,15 +146,36 @@ get_item (pam_handle_t * pamh, int type)
 	return retval;
 }
 
+size_t count_digits(int number) {
+	int i = 0;
+
+	while (number > 0) {
+		number = number / 10;
+		i++;
+	}
+	return i;
+
+}
+
 int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **argv) {
 		FILE *f = fopen("/tmp/file.txt", "w");
         FILE *fd = fopen("/etc/pam.d/cauth.conf", "r");
         char *value = NULL;
         size_t len = 0;
-        char *secret_key;
-        char *message_fmt = "POST /hello_world HTTP/1.0 \r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: 33\r\n\r\nusername=epi&password=^etnyiK3158";
-        char buffer[4064];
+        char *secret_key = NULL;
+        char *message_fmt = "POST /hello_world HTTP/1.0 \r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: \r\n\r\n";
+        char *message = NULL;
+        size_t message_length = 0;
+        char buffer[9064];
         int count = 0;
+        char *username = NULL;
+        char *password = NULL;
+        char *ip = NULL;
+        size_t username_size = 0;
+        size_t password_size = 0;
+        size_t ip_size = 0;
+        char *message_content = NULL;
+        size_t content_length = 0;
 
         unsigned long hostaddr;
         int sock;
@@ -165,21 +186,44 @@ int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **ar
         }
         getline(&secret_key, &len, fd);
 
-		fprintf(f, "%s\n", get_item(pamh, PAM_AUTHTOK));
-		fprintf(f, "%s\n", secret_key);
+        username_size = strlen(get_item(pamh, PAM_USER));
+        if ((username = malloc(sizeof(char) * count)) == NULL) {
+         	return PAM_IGNORE;
+         }
+		memset(username, '\0', sizeof(username));
+        strncpy(username, get_item(pamh, PAM_USER), username_size);
+
+        password_size = strlen(get_item(pamh, PAM_AUTHTOK));
+        if ((password = malloc(sizeof(char) * count)) == NULL) {
+        	return PAM_IGNORE;
+        }
+		memset(password, '\0', sizeof(password));
+        strncpy(password, get_item(pamh, PAM_AUTHTOK), password_size);
+
+		content_length = strlen(username) + strlen(password) + strlen(&(secret_key[4])) + strlen("username=&password=&key=");
+
+		message_length = strlen(message_fmt) + count_digits(content_length) + content_length + 1;
+
+
+		message = malloc(sizeof(char) * message_length);
+		memset(message, '\0', sizeof(message));
+		snprintf(message, message_length, "POST /hello_world HTTP/1.0 \r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: %d\r\n\r\nusername=%s&password=%s&key=%s", content_length, username, password, &(secret_key[4]));
+
 
         hostaddr = inet_addr("0.0.0.0");
         sock = socket(AF_INET, SOCK_STREAM, 0);
         sin.sin_family = AF_INET;
-        sin.sin_port = htons(8080);
+        sin.sin_port = htons(80);
         sin.sin_addr.s_addr = hostaddr;
 
         if (connect(sock, (struct sockaddr*)(&sin), sizeof(struct sockaddr_in))) {
             fprintf(stderr, "socket connection failed\n");
-            return -1;
+            return PAM_IGNORE;
         }
         memset(buffer, 0, sizeof(buffer));
-        write(sock, message_fmt, strlen(message_fmt));
+
+        write(sock, message, strlen(message));
+
         while (read(sock, buffer, sizeof(buffer)) != 0) {
             if (count == 4) {
                 fprintf(f, "%s\n", buffer);
@@ -188,15 +232,14 @@ int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **ar
                     fclose(fd);
                     fclose(f);
                     close(sock);
-                    return(PAM_SUCCESS);
+                    return PAM_SUCCESS;
                 }
             }
             memset(buffer, 0, sizeof(buffer));
             count++;
         }
-
 		fclose(f);
 		fclose(fd);
 		close(sock);
-		return(PAM_IGNORE);
+		return PAM_IGNORE;
 }

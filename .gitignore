@@ -1,3 +1,5 @@
 Vagrantfile
 .idea
 .editorconfig
+*.pyc
+*.sqlite3
