@@ -3,3 +3,4 @@ Vagrantfile
 .editorconfig
 *.pyc
 *.sqlite3
+*.vagrant

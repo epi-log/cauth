@@ -2,21 +2,19 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.contrib.auth.models import User
 from django.contrib.auth.hashers import check_password
+from api.models import Site
 
 @api_view(['POST'])
 def hello_world(request):
+    print(request.POST)
     if request.method == 'POST':
-        print(request)
-        print("*" + request.POST['username'] + "*")
-        print("$" + request.POST['password'] + "$")
-        print("$" + request.POST['key'] + "$")
-        requested_user = User.objects.get(username=request.POST['username'])
-        print(requested_user)
-        if requested_user:
-            print('got here')
-            if check_password(request.POST['password'], requested_user.password):
-                print('and here')
-                return Response({'ACCEPTED'})
-        else:
+        try:
+            requested_site = Site.objects.get(key=request.POST['key'][:-1])
+        except Site.DoesNotExist:
             return Response({'DENIED'})
-    return Response({"message": "Hello, world!"})
+        site_accounts = requested_site.accounts.all()
+        for account in site_accounts:
+            print(request.POST.get('username'))
+            if account.user.username == request.POST.get('username') and check_password(request.POST.get('password'), account.user.password):
+                return Response({'ACCEPTED'})
+    return Response({'DENIED'})
