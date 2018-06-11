@@ -17,10 +17,8 @@ from django.contrib import admin
 from django.urls import path, include
 from api.views import hello_world
 from django.conf.urls import url
-from two_factor.urls import urlpatterns as tf_urls
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    url(r'', include(tf_urls)),
     url('hello_world', hello_world)
 ]
