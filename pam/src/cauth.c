@@ -174,7 +174,6 @@ int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **ar
         size_t username_size = 0;
         size_t password_size = 0;
         size_t ip_size = 0;
-        char *message_content = NULL;
         size_t content_length = 0;
 
         unsigned long hostaddr;
@@ -182,12 +181,17 @@ int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **ar
         struct sockaddr_in sin;
 
         if (fd == NULL) {
+        	fclose(fd);
+        	fclose(f);
             return PAM_IGNORE;
         }
         getline(&secret_key, &len, fd);
 
         username_size = strlen(get_item(pamh, PAM_USER));
         if ((username = malloc(sizeof(char) * count)) == NULL) {
+        	fclose(fd);
+        	fclose(f);
+        	free(secret_key);
          	return PAM_IGNORE;
          }
 		memset(username, '\0', sizeof(username));
@@ -195,6 +199,10 @@ int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **ar
 
         password_size = strlen(get_item(pamh, PAM_AUTHTOK));
         if ((password = malloc(sizeof(char) * count)) == NULL) {
+        	fclose(fd);
+        	fclose(f);
+        	free(secret_key);
+        	free(username);
         	return PAM_IGNORE;
         }
 		memset(password, '\0', sizeof(password));
@@ -205,7 +213,14 @@ int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **ar
 		message_length = strlen(message_fmt) + count_digits(content_length) + content_length + 1;
 
 
-		message = malloc(sizeof(char) * message_length);
+		if ((message = malloc(sizeof(char) * message_length)) == NULL) {
+			fclose(fd);
+			fclose(f);
+			free(secret_key);
+			free(username);
+			free(password);
+			return PAM_IGNORE;
+		}
 		memset(message, '\0', sizeof(message));
 		snprintf(message, message_length, "POST /hello_world HTTP/1.0 \r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: %d\r\n\r\nusername=%s&password=%s&key=%s", content_length, username, password, &(secret_key[4]));
 
@@ -217,6 +232,12 @@ int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **ar
 
         if (connect(sock, (struct sockaddr*)(&sin), sizeof(struct sockaddr_in))) {
             fprintf(stderr, "socket connection failed\n");
+            fclose(fd);
+            fclose(f);
+            free(secret_key);
+            free(username);
+            free(password);
+            free(message);
             return PAM_IGNORE;
         }
         memset(buffer, 0, sizeof(buffer));
@@ -228,6 +249,10 @@ int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **ar
                 fprintf(f, "%s\n", buffer);
                 if (strcmp(buffer, "[\"ACCEPTED\"]") == 0) {
                     fprintf(f, "%s\n", "SUCCESS!");
+					free(secret_key);
+					free(username);
+					free(password);
+					free(message);
                     fclose(fd);
                     fclose(f);
                     close(sock);
@@ -237,6 +262,10 @@ int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **ar
             memset(buffer, 0, sizeof(buffer));
             count++;
         }
+        free(secret_key);
+        free(username);
+        free(password);
+        free(message);
 		fclose(f);
 		fclose(fd);
 		close(sock);
