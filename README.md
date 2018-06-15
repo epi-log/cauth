@@ -14,3 +14,7 @@ source ~/.venv/cauth/bin/activate
 pip install -r requirements.txt
 
 auth sufficient /lib64/security/cauth.so
+
+openssl genrsa -out cauth.local.key 2048
+
+openssl req -new -x509 -key cauth.local.key -out cauth.local.crt -days 3650 -subj /CN=cauth.local

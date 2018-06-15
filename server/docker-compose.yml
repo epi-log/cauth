@@ -1,0 +1,19 @@
+version: '3'
+
+services:
+  nginx-proxy:
+    image: jwilder/nginx-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./certs:/etc/nginx/certs
+  cauth-api:
+    command: python manage.py runserver 0.0.0.0:8000
+    build: .
+    ports:
+      - "8000"
+    environment:
+      - VIRTUAL_HOST=cauth.local
+      - PYTHONUNBUFFERED=0

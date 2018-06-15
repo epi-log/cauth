@@ -4,3 +4,4 @@ Vagrantfile
 *.pyc
 *.sqlite3
 *.vagrant
+certs
